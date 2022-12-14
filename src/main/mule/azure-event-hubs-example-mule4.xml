@@ -61,7 +61,6 @@ http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/jav
 	arg2: p('azure.eventhubs.key')
 }]]]></java:args>
 		</java:invoke-static>
-		<logger level="INFO" doc:name="Logger" doc:id="fbe59404-fcee-4eba-935a-9cbc1fbcdc1c" />
 		<ee:transform doc:name="Transform Message" doc:id="09f1969e-b9f7-4f85-9b8b-137b1031a61a" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
@@ -80,7 +79,6 @@ output application/json
 	"Authorization" : vars.SASToken
 }]]]></http:headers>
 		</http:request>
-		<logger level="INFO" doc:name="Logger" doc:id="b97d4860-50a1-456e-924f-43214aac169b" />
 	</flow>
 	<flow name="azure-event-hubs-example-mule4Flow1" doc:id="44b0d2ad-c06e-4ff9-b3a3-b04f644a29d8" >
 		<kafka:message-listener doc:name="Message listener" doc:id="c27fa0e5-8170-45f2-a76c-3adf9bcc59c6" config-ref="Apache_Kafka_Consumer_configuration" pollTimeout="5" pollTimeoutTimeUnit="SECONDS" ackMode="AUTO"/>
