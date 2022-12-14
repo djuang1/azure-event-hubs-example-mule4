@@ -1,0 +1,5 @@
+azure:
+  eventhubs:
+    namespace: ""
+    password: ""
+    topic: ""

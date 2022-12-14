@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:kafka="http://www.mulesoft.org/schema/mule/kafka"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/kafka http://www.mulesoft.org/schema/mule/kafka/current/mule-kafka.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
+	<kafka:producer-config
+		name="Apache_Kafka_Producer_configuration"
+		doc:name="Apache Kafka Producer configuration"
+		doc:id="6b95b454-4af0-4441-bfbe-b0c4e1afd3e1" topic="${azure.eventhubs.topic}">
+		<kafka:producer-sasl-plain-connection
+			username="$ConnectionString"
+			password="${azure.eventhubs.password}"
+			endpointIdentificationAlgorithm="https">
+			<tls:context>
+				<tls:key-store type="jks" path="keystore.jks"
+					alias="mule" keyPassword="password" password="password" />
+			</tls:context>
+			<kafka:bootstrap-servers >
+				<kafka:bootstrap-server value="${azure.eventhubs.namespace}.servicebus.windows.net:9093" />
+			</kafka:bootstrap-servers>
+		</kafka:producer-sasl-plain-connection>
+	</kafka:producer-config>
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="d774e6e7-2a37-40ec-97fc-f29905ff8237" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<kafka:consumer-config name="Apache_Kafka_Consumer_configuration" doc:name="Apache Kafka Consumer configuration" doc:id="27fb8af5-0175-4330-a46f-41da5da34911" >
+		<kafka:consumer-sasl-plain-connection username="$ConnectionString" password="${azure.eventhubs.password}" groupId="$Default" endpointIdentificationAlgorithm="https">
+			<tls:context >
+				<tls:key-store type="jks" path="keystore.jks" alias="mule" keyPassword="password" password="password" />
+			</tls:context>
+			<kafka:bootstrap-servers >
+				<kafka:bootstrap-server value="${azure.eventhubs.namespace}.servicebus.windows.net:9093" />
+			</kafka:bootstrap-servers>
+			<kafka:assignments >
+				<kafka:topic-partition topic="${azure.eventhubs.topic}" partition="1" />
+			</kafka:assignments>
+		</kafka:consumer-sasl-plain-connection>
+	</kafka:consumer-config>
+	<configuration-properties doc:name="Configuration properties" doc:id="112dd84b-5485-424c-baac-18d1ae52e233" file="mule-properties.yaml" />
+	<flow name="azure-event-hubs-example-mule4Flow1" doc:id="44b0d2ad-c06e-4ff9-b3a3-b04f644a29d8" >
+		<kafka:message-listener doc:name="Message listener" doc:id="c27fa0e5-8170-45f2-a76c-3adf9bcc59c6" config-ref="Apache_Kafka_Consumer_configuration" pollTimeout="5" pollTimeoutTimeUnit="SECONDS" ackMode="AUTO"/>
+		<ee:transform doc:name="Transform Message" doc:id="3d1104f9-9127-4dd2-ac4e-4c5d6c0d5012">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="f32ba82f-45e6-453b-b2c5-7cb1cdf4f250" message="#[payload]"/>
+	</flow>
+	<flow name="azure-event-hubs-example-mule4Flow" doc:id="f03cc1e2-9cad-48fc-927a-daf8429de0c8" >
+		<http:listener doc:name="Listener" doc:id="81588753-1d71-4353-9b2e-10bb0bc386e8" config-ref="HTTP_Listener_config" path="/send"/>
+		<ee:transform doc:name="Transform Message" doc:id="f58978e0-1180-4c83-b151-a0ed1fff1808" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+"Hello World!"]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<kafka:publish doc:name="Publish" doc:id="d6dc111b-faa4-4273-9912-ab131b8e6bfc" config-ref="Apache_Kafka_Producer_configuration"/>
+		<ee:transform doc:name="Transform Message" doc:id="dff01a3a-1bd2-45ff-abbc-76a769529eff" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
