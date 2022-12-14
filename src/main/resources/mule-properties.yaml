@@ -3,3 +3,5 @@ azure:
     namespace: ""
     password: ""
     topic: ""
+    keyName: ""
+    key: ""

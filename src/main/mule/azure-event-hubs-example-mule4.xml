@@ -1,17 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+<mule xmlns:java="http://www.mulesoft.org/schema/mule/java"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
 	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
 	xmlns:http="http://www.mulesoft.org/schema/mule/http"
 	xmlns:kafka="http://www.mulesoft.org/schema/mule/kafka"
 	xmlns="http://www.mulesoft.org/schema/mule/core"
 	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/kafka http://www.mulesoft.org/schema/mule/kafka/current/mule-kafka.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
-http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd">
 	<kafka:producer-config
 		name="Apache_Kafka_Producer_configuration"
 		doc:name="Apache Kafka Producer configuration"
@@ -46,6 +47,41 @@ http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/
 		</kafka:consumer-sasl-plain-connection>
 	</kafka:consumer-config>
 	<configuration-properties doc:name="Configuration properties" doc:id="112dd84b-5485-424c-baac-18d1ae52e233" file="mule-properties.yaml" />
+	<http:request-config name="HTTPS_EventHubs_Request_configuration" doc:name="HTTP Request configuration" doc:id="809a6099-35c6-4d89-85b5-a342b53a54d0" >
+		<http:request-connection protocol="HTTPS" host="${azure.eventhubs.namespace}.servicebus.windows.net" port="443" />
+	</http:request-config>
+	<flow name="azure-event-hubs-example-mule4Flow2" doc:id="61029183-2298-48af-ae57-7cd3b310b72a" >
+		<http:listener doc:name="/rest" doc:id="e79100d5-67bd-46e7-9bc7-f82481f00da1" config-ref="HTTP_Listener_config" path="/rest"/>
+		<java:invoke-static method="GetSASToken(java.lang.String,java.lang.String,java.lang.String)" doc:name="Invoke static" doc:id="cc5b16ad-eaaf-4862-91b7-fb87b464c33a" class="com.dejim.SASToken" target="SASToken">
+			<java:args ><![CDATA[#[output application/java
+---
+{
+	arg0: p('azure.eventhubs.namespace') ++ ".servicebus.windows.net",
+	arg1: p('azure.eventhubs.keyName'),
+	arg2: p('azure.eventhubs.key')
+}]]]></java:args>
+		</java:invoke-static>
+		<logger level="INFO" doc:name="Logger" doc:id="fbe59404-fcee-4eba-935a-9cbc1fbcdc1c" />
+		<ee:transform doc:name="Transform Message" doc:id="09f1969e-b9f7-4f85-9b8b-137b1031a61a" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{ 
+	"Location": "Redmond", 
+	"Temperature": "37.0"
+}  ]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<http:request method="POST" doc:name="Request" doc:id="7da7444d-a466-41d3-aba7-8877c304c432" config-ref="HTTPS_EventHubs_Request_configuration" path="/${azure.eventhubs.topic}/messages">
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"Authorization" : vars.SASToken
+}]]]></http:headers>
+		</http:request>
+		<logger level="INFO" doc:name="Logger" doc:id="b97d4860-50a1-456e-924f-43214aac169b" />
+	</flow>
 	<flow name="azure-event-hubs-example-mule4Flow1" doc:id="44b0d2ad-c06e-4ff9-b3a3-b04f644a29d8" >
 		<kafka:message-listener doc:name="Message listener" doc:id="c27fa0e5-8170-45f2-a76c-3adf9bcc59c6" config-ref="Apache_Kafka_Consumer_configuration" pollTimeout="5" pollTimeoutTimeUnit="SECONDS" ackMode="AUTO"/>
 		<ee:transform doc:name="Transform Message" doc:id="3d1104f9-9127-4dd2-ac4e-4c5d6c0d5012">
